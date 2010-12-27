@@ -1,0 +1,106 @@
+#!/usr/bin/python
+
+import re
+import os
+import sys
+import optparse
+import subprocess
+import cPickle as pickle
+
+bsize = 4096
+bcount = 50000
+
+parser = optparse.OptionParser(usage="""usage: %prog [ssh remote arg] [remote path]]
+       %prog -c [checkfile]
+ex:    %prog root@cfsyn04 /srv/node/sda
+       %prog -c root-cfsyn04-srv-node-sda""")
+parser.add_option('-c', '--check', dest='check')
+(options, args) = parser.parse_args()
+
+_unindent_pat = re.compile(r'^        ', re.M)
+unindent = lambda x: _unindent_pat.sub('', x, 0)
+
+def run_remote_script(remote, script):
+    return subprocess.Popen(["ssh", '-o', 'TCPKeepAlive yes', '-o',
+        'ServerAliveInterval 1', '-o', 'ServerAliveCountMax 5', remote, script],
+        stdout=subprocess.PIPE).stdout
+
+if options.check:
+    remote, path, blocks_should_be = pickle.load(open(options.check, 'rb'))
+    otherside_script = """
+        echo '
+        import os, sys, struct
+        bsize = %s
+        bcount = %s
+        fd = os.open(os.path.join(sys.argv[1], "synctest"), os.O_RDONLY)
+        for block in xrange(bcount):
+            os.lseek(fd, block * bsize, os.SEEK_SET)
+            print "%%s:%%s" %% (block, struct.unpack("!I", os.read(fd, 4))[0])
+        ' | python - %s
+        """ % (bsize, bcount, path)
+    errors = 0
+    for line in run_remote_script(remote, unindent(otherside_script)):
+        block, char = line.strip().split(':')
+        block = int(block)
+        char = int(char)
+        if block in blocks_should_be and blocks_should_be[block][1] != char:
+            errors += 1
+            print "block %s should be %s, is %s" % (block, blocks_should_be[block], char)
+    print "%s errors out of %s" % (errors, len(blocks_should_be))
+else:
+    if len(args) < 2:
+        parser.print_help()
+        sys.exit(1)
+    otherside_script = """
+        echo '
+        import os, sys, random, time, struct
+        bsize = %s
+        bcount = %s
+        blocks = range(bcount)
+        random.shuffle(blocks)
+        fd = os.open(os.path.join(sys.argv[1], "synctest"), os.O_CREAT|os.O_RDWR)
+        os.ftruncate(fd, 0)
+        os.ftruncate(fd, bsize * (bcount + 1))
+        while True:
+            for block in blocks:
+                char = random.randint(0, 0xFFFFFFFF)
+                os.lseek(fd, block * bsize, os.SEEK_SET)
+                print "0:%%s:-1" %% block
+                os.write(fd, struct.pack("!I", char))
+                os.fdatasync(fd)
+                print "%%.5f:%%s:%%s" %% (time.time(), block, char)
+        ' | python -u - %s
+        """ % (bsize, bcount, args[1])
+    blocks_should_be = {}
+    prev_second = 0
+    total = count = 0
+    try:
+        for line in run_remote_script(args[0], unindent(otherside_script)):
+            sync_time, block, char = line.strip().split(':')
+            sync_time = float(sync_time)
+            block = int(block)
+            char = int(char)
+            if char < 0:
+                if block in blocks_should_be:
+                    del blocks_should_be[block]
+                continue
+            else:
+                blocks_should_be[block] = (sync_time, char)
+            if int(float(sync_time)) != prev_second:
+                print count, "sync/s"
+                count = 0
+                prev_second = int(float(sync_time))
+            count += 1
+            total += 1
+            if not (total % bcount):
+                print "----- file fully rewritten"
+    finally:
+        test_file = re.sub('[^\w]+', '-', '-'.join(args)) + '.1'
+        i = 1
+        while os.path.exists(test_file):
+            i += 1
+            test_file = re.sub('[^\w]+', '-', '-'.join(args)) + '.' + str(i)
+        print "Writing results file: \x1b[1;32m%s\x1b[0m" % test_file
+        pickle.dump((args[0], args[1], blocks_should_be),
+                    open(test_file, 'wb'))
+
