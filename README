@@ -1,3 +1,11 @@
 A few scripts I'm working on to test the consistency of data when machines
-lose power.  I'll document them better later.
+lose power.
+
+'test-storage' is used to test that blocks fsynced to a disk actually made it
+to oxide.  It does this by executing a python script on the remote system
+via ssh.  That script syncs small blocks as quickly as possible, sending each
+write back to the client on success.  Power is pulled from the remote system
+while the test is running.  After it's been brought back online, a check can
+be made against the remote file to identify any syncs that returned success
+but failed to survive the reboot.
 
