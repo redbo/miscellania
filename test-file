@@ -12,6 +12,7 @@ import optparse
 import xattr
 import os
 import random
+import time
 
 num_files = 1000
 padding = '\x08' * 8185
@@ -24,29 +25,32 @@ parser.add_option('-n', '--nosync', action='store_true', dest='nosync',
 (options, args) = parser.parse_args()
 
 if options.check:
-    for file in os.listdir(args[0]):
-        # cia style check on all file contents and attributes
-        if file.startswith('.'):
+    for file in os.listdir(options.check):
+        if file.startswith('.') or not file.isdigit():
             continue
-        filename = os.path.join(args[0], file)
+        filename = os.path.join(options.check, file)
         fp = open(filename)
         data = fp.read()
-        rand = xattr.getxattr(fp, 'rand')
+        rand = xattr.getxattr(fp, 'user.rand')
         if data != rand + padding:
-            print "bad data"
+            print "bad data", filename
 else:
+    count = 0
+    start = time.time()
     while True:
         for file in xrange(num_files):
             filename = os.path.join(args[0], str(file))
             tmpfile = os.path.join(args[0], '.tmp')
             fp = open(tmpfile, 'wb')
-            rand = '%08X' % random.randrange(0, 0xFFFFFFFF)
+            rand = '%08X' % random.randrange(1, 0xFFFFFFFF)
             fp.write(rand)
             fp.write(padding)
-            xattr.setxattr(fp, 'rand', rand)
+            xattr.setxattr(fp, 'user.rand', rand)
             fp.flush()
             if not options.nosync:
                 os.fdatasync(fp.fileno())
             fp.close()
             os.rename(tmpfile, filename)
+            count += 1
+        print "%.2f/sec" % (count / (time.time() - start))
 
