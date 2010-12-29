@@ -20,7 +20,6 @@ CHUNK_SIZE = 65536
 
 def cstats(filename):
     "Get compression stats for the file."
-    print filename
     try:
         fp = open(filename)
     except IOError: # access denied probably
