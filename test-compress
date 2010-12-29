@@ -1,0 +1,84 @@
+#!/usr/bin/python
+
+"""
+Usage: compresstest [path]
+
+Traverses [path] and runs any files it comes across through zlib and bz2.
+Periodically prints out the total count and size of all files and what size
+they would be if compressed with the two algorithms.
+"""
+
+import os
+import sys
+import bz2
+import zlib
+import time
+import threading
+
+
+CHUNK_SIZE = 65536
+
+def cstats(filename):
+    "Get compression stats for the file."
+    print filename
+    try:
+        fp = open(filename)
+    except IOError: # access denied probably
+        return (0, 0, 0)
+    bzer = bz2.BZ2Compressor()
+    zliber = zlib.compressobj()
+    file_size = bzip_size = zlib_size = 0
+    for data in iter(lambda: fp.read(CHUNK_SIZE), ''):
+        file_size += len(data)
+        bzip_size += len(bzer.compress(data))
+        zlib_size += len(zliber.compress(data))
+    bzip_size += len(bzer.flush())
+    zlib_size += len(zliber.flush())
+    return file_size, bzip_size, zlib_size
+
+
+def fmt(bytes):
+    "Return a number of bytes as a more readable string"
+    if bytes >= 1099511627776:
+        return '%8.3f T' % (bytes / 1099511627776.0)
+    elif bytes >= 1073741824:
+        return '%8.3f G' % (bytes / 1073741824.0)
+    return '%8.3f M' % (bytes / 1048576.0)
+
+
+def print_stats():
+    "Stats printing loop"
+    looped = 0
+    while True:
+        time.sleep(1)
+        if not looped % 20:
+            print
+            print 'Files           Size         BZ2 (% redu)        ZLIB (% redu)        BEST (% redu)'
+            print '-----------------------------------------------------------------------------------'
+        looped += 1
+        print '%-9d %s  %s (%5.2f%%)  %s (%5.2f%%)  %s (%5.2f%%)' % (file_count, fmt(file_size),
+                fmt(bzip_size), 100.0 - bzip_size * 100.0 / file_size,
+                fmt(zlib_size), 100.0 - zlib_size * 100.0 / file_size,
+                fmt(best_size), 100.0 - best_size * 100.0 / file_size)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
+        sys.exit(__doc__)
+    stats_thread = threading.Thread(target=print_stats)
+    stats_thread.daemon = True
+    stats_thread.start()
+    file_count = file_size = bzip_size = zlib_size = best_size = 0
+    for dir, dirs, files in os.walk(sys.argv[1]):
+        for file in files:
+            f_size, b_size, z_size = cstats(os.path.join(dir, file))
+            if f_size:
+                file_count += 1
+                file_size += f_size
+                bzip_size += b_size
+                zlib_size += z_size
+                best_size += min(f_size, b_size, z_size)
+    print '%-9d %s  %s (%5.2f%%)  %s (%5.2f%%)  %s (%5.2f%%)' % (file_count, fmt(file_size),
+            fmt(bzip_size), 100.0 - bzip_size * 100.0 / file_size,
+            fmt(zlib_size), 100.0 - zlib_size * 100.0 / file_size,
+            fmt(best_size), 100.0 - best_size * 100.0 / file_size)
