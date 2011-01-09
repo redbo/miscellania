@@ -1,5 +1,7 @@
-A few scripts I'm working on to test the consistency of data when machines
-lose power.
+This has become sort of my dumpsite for miscellaneous scripts and stuff.
+
+
+
 
 'test-sync' is used to test that blocks fsynced to a disk actually made it
 to oxide.  It does this by executing a python script on the remote system
