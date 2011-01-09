@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+import hashlib
+import operator
+import sqlite3
+
+def chexor(old, key):
+    if key is None:
+        raise Exception('key is None!')
+    old = old.decode('hex')
+    new = hashlib.md5(key.encode('utf_8')).digest()
+    response = ''.join(
+        map(chr, map(operator.xor, map(ord, old), map(ord, new))))
+    return response.encode('hex')
+
+con = sqlite3.connect('test.db')
+con.create_function('chexor', 2, chexor)
+con.executescript("""
+  CREATE TABLE IF NOT EXISTS object (key TEXT);
+
+  CREATE TABLE IF NOT EXISTS object_stat (
+    row INTEGER UNIQUE, -- so we can make sure it always has one row
+    hash TEXT default '00000000000000000000000000000000'
+  );
+  INSERT OR IGNORE INTO object_stat (row) values (0);
+
+  CREATE TRIGGER IF NOT EXISTS object_insert AFTER INSERT ON object
+  BEGIN UPDATE object_stat SET hash = chexor(hash, new.key); END;
+
+  CREATE TRIGGER IF NOT EXISTS object_delete AFTER DELETE ON object
+  BEGIN UPDATE object_stat SET hash = chexor(hash, old.key); END;
+
+""")
+
+# add a value to the table and grab the current hash
+con.execute("insert into object (key) values ('some values')")
+for row in con.execute("select hash from object_stat"):
+    some_values_hash = row[0]
+# add another value to the table and make sure the hash changes
+con.execute("insert into object (key) values ('some other values')")
+assert(next(con.execute("select hash from object_stat"))[0]
+        != some_values_hash)
+# delete the most recent value and make sure the hash reverted
+con.execute("delete from object where key = 'some other values'")
+assert(next(con.execute("select hash from object_stat"))[0]
+        == some_values_hash)
+# delete everything and verify the hash is zeroed out
+con.execute("delete from object")
+for row in con.execute("select hash from object_stat"):
+    assert(row[0] == '00000000000000000000000000000000')
+
