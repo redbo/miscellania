@@ -14,7 +14,10 @@ def __setup():
         import readline
         import rlcompleter
         HISTORYFILE = os.path.join(os.environ['HOME'], '.python-history')
-        readline.parse_and_bind("tab: complete")
+        if os.uname()[0] == 'Darwin':
+            readline.parse_and_bind("bind ^I rl_complete")
+        else:
+            readline.parse_and_bind("tab: complete")
         try:
             readline.read_history_file(HISTORYFILE)
         except IOError:
