@@ -13,14 +13,13 @@ def __setup():
     import rlcompleter
 
     HISTORYFILE = os.path.join(os.environ['HOME'], '.python-history')
-    if os.uname()[0] == 'Darwin':
-        readline.parse_and_bind("bind ^I rl_complete")
-    else:
-        readline.parse_and_bind("tab: complete")
+    readline.parse_and_bind("bind ^I rl_complete")
+    readline.parse_and_bind("tab: complete")
     try:
         readline.read_history_file(HISTORYFILE)
     except IOError:
         pass  # It doesn't exist yet.
+    readline.set_history_length(100)
     atexit.register(lambda: readline.write_history_file(HISTORYFILE))
 
     sys.ps1 = '\n\x1b[0;32m \x1b[1;32m>>\x1b[0;32m \x1b[0m: '
