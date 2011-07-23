@@ -13,8 +13,8 @@ def __setup():
     import rlcompleter
 
     HISTORYFILE = os.path.join(os.environ['HOME'], '.python-history')
-    readline.parse_and_bind("bind ^I rl_complete")
-    readline.parse_and_bind("tab: complete")
+    readline.parse_and_bind("bind ^I rl_complete") # mac (bsd libedit)
+    readline.parse_and_bind("tab: complete") # gnu readline
     try:
         readline.read_history_file(HISTORYFILE)
     except IOError:
