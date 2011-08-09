@@ -1,4 +1,5 @@
 syntax on
+set hidden
 set title
 set ruler
 set hlsearch
@@ -25,4 +26,7 @@ function! TogglePythonComments()
  endif
 endfunction
 autocmd FileType python map # :call TogglePythonComments()<cr>
+map <C-n> :bn<cr>
+map <C-p> :bp<cr>
+map <C-t> :E<cr>
 
