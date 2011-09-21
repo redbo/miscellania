@@ -13,9 +13,9 @@ set softtabstop=2
 " 4-space tab widths for python (and pyrex)
 autocmd FileType py* setlocal shiftwidth=4 tabstop=8 softtabstop=4
 
-" highlight lines over 80 cols, spaces at the end of lines and tab characters
+" highlight lines over 79 cols, spaces at the end of lines and tab characters
 highlight BadStyle ctermbg=darkblue ctermfg=green
-match BadStyle "\(\%>80v.\+\|\t\| \+$\)"
+match BadStyle "\(\%>79.\+\|\t\| \+$\)"
 
 " # key toggle comments in python
 function! TogglePythonComments()

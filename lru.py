@@ -1,5 +1,6 @@
 """
 A simple LRU class in python.
+Acts like a total dict.
 """
 
 class LRU(object):
