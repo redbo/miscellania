@@ -15,7 +15,7 @@ autocmd FileType py* setlocal shiftwidth=4 tabstop=8 softtabstop=4
 
 " highlight lines over 79 cols, spaces at the end of lines and tab characters
 highlight BadStyle ctermbg=darkblue ctermfg=green
-match BadStyle "\(\%>79.\+\|\t\| \+$\)"
+match BadStyle "\(\%>79v.\+\|\t\| \+$\)"
 
 " # key toggle comments in python
 function! TogglePythonComments()
