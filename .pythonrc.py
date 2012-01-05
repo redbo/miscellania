@@ -11,10 +11,13 @@ def __setup():
     import pprint
     import readline
     import rlcompleter
+    import platform
 
     HISTORYFILE = os.path.join(os.environ['HOME'], '.python-history')
-    readline.parse_and_bind("bind ^I rl_complete") # mac (bsd libedit)
-    readline.parse_and_bind("tab: complete") # gnu readline
+    if platform.system() == 'Darwin':
+        readline.parse_and_bind("bind ^I rl_complete") # mac (bsd libedit)
+    else:
+        readline.parse_and_bind("tab: complete") # gnu readline
     try:
         readline.read_history_file(HISTORYFILE)
     except IOError:
