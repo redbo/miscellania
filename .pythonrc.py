@@ -1,7 +1,6 @@
 """
-~/.pythonrc.py
-
-echo "export PYTHONSTARTUP=~/.pythonrc.py" >> ~/.bash_profile
+wget 'https://github.com/redbo/miscellania/raw/master/.pythonrc.py' -O ~/.pythonrc.py
+echo 'export PYTHONSTARTUP=~/.pythonrc.py' >> ~/.bash_profile
 """
 
 def __setup():
