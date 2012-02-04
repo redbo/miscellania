@@ -13,8 +13,11 @@ import pep8
 
 
 def lines_added(file1, file2):
+    """
+    Return the set of lines added or replaced in file2.
+    """
     lines_added = set()
-    seq_match = difflib.SequenceMatcher(None, old_lines, new_lines)
+    seq_match = difflib.SequenceMatcher(None, file1, file2)
     for tag, i1, i2, j1, j2 in seq_match.get_opcodes():
         if tag in ('replace', 'insert'):
             lines_added.update(xrange(j1 + 1, j2 + 1))
@@ -22,6 +25,9 @@ def lines_added(file1, file2):
 
 
 class LineChecker(pep8.Checker):
+    """
+    Find pep8 violations that occur on the given line numbers.
+    """
     def __init__(self, lines, lines_added):
         self._lines_added = lines_added
         pep8.Checker.__init__(self, None, lines)
