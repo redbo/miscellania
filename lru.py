@@ -2,12 +2,13 @@
 A simple LRU class in python.
 Acts like a total dict.
 """
+import collections
 
 class LRU(object):
     def __init__(self, size):
         self.size = size
         self._cache = {}
-        self.lru = []
+        self.lru = collections.deque()
 
     def __getitem__(self, key):
         item = self._cache[key]
@@ -22,9 +23,18 @@ class LRU(object):
         self._cache[key] = item
         if len(self._cache) > self.size:
             del self._cache[self.lru[0][0]]
-            self.lru.pop(0)
+            self.lru.popleft()
         self.lru.append(item)
 
     def __contains__(self, key):
         return key in self._cache
+
+
+if __name__ == '__main__':
+    import random, timeit
+    def speed_test():
+        lru = LRU(100)
+        for x in xrange(500):
+            lru[x] = True
+    print timeit.timeit(speed_test, number=1000)
 

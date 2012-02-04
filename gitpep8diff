@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+"""
+GIT_EXTERNAL_DIFF='gitpep8diff' git diff ...
+Suggested: --diff-filter=AM
+"""
+
+import os
+import sys
+import difflib
+
+import pep8
+
+
+def lines_added(file1, file2):
+    lines_added = set()
+    seq_match = difflib.SequenceMatcher(None, old_lines, new_lines)
+    for tag, i1, i2, j1, j2 in seq_match.get_opcodes():
+        if tag in ('replace', 'insert'):
+            lines_added.update(xrange(j1 + 1, j2 + 1))
+    return lines_added
+
+
+class LineChecker(pep8.Checker):
+    def __init__(self, lines, lines_added):
+        self._lines_added = lines_added
+        pep8.Checker.__init__(self, None, lines)
+
+    def check(self):
+        self._line_errors = []
+        self.check_all()
+        return self._line_errors
+
+    def report_error(self, line_number, offset, text, check):
+        if line_number in self._lines_added:
+            self._line_errors.append((line_number, text))
+
+
+if __name__ == '__main__':
+    _, filename, old, _, _, new, _, _ = sys.argv
+    if filename.endswith('.py'):
+        old_lines = list(open(old))
+        new_lines = list(open(new))
+        # well, at least it's vaguely reusable..
+        pep8.process_options(['blah', 'crap', 'whatever'])
+        additions = lines_added(old_lines, new_lines)
+        checker = LineChecker(new_lines, additions)
+        for line_number, error_text in checker.check():
+            print "%s:%s:%s" % (filename, line_number, error_text)
+
+
