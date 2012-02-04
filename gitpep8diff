@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 """
+USE:
+
 GIT_EXTERNAL_DIFF='gitpep8diff' git diff ...
-Suggested: --diff-filter=AM
+
+Suggested: "--diff-filter=AM" to avoid complaining when files are renamed.
 """
 
 import os
@@ -16,20 +19,20 @@ def lines_added(file1, file2):
     """
     Return the set of lines added or replaced in file2.
     """
-    lines_added = set()
+    line_numbers = set()
     seq_match = difflib.SequenceMatcher(None, file1, file2)
     for tag, i1, i2, j1, j2 in seq_match.get_opcodes():
         if tag in ('replace', 'insert'):
-            lines_added.update(xrange(j1 + 1, j2 + 1))
-    return lines_added
+            line_numbers.update(xrange(j1 + 1, j2 + 1))
+    return line_numbers
 
 
 class LineChecker(pep8.Checker):
     """
     Find pep8 violations that occur on the given line numbers.
     """
-    def __init__(self, lines, lines_added):
-        self._lines_added = lines_added
+    def __init__(self, lines, line_numbers):
+        self._line_numbers = line_numbers
         pep8.Checker.__init__(self, None, lines)
 
     def check(self):
@@ -38,7 +41,7 @@ class LineChecker(pep8.Checker):
         return self._line_errors
 
     def report_error(self, line_number, offset, text, check):
-        if line_number in self._lines_added:
+        if line_number in self._line_numbers:
             self._line_errors.append((line_number, text))
 
 
@@ -53,5 +56,4 @@ if __name__ == '__main__':
         checker = LineChecker(new_lines, additions)
         for line_number, error_text in checker.check():
             print "%s:%s:%s" % (filename, line_number, error_text)
-
 
