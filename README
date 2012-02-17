@@ -17,3 +17,6 @@ file's contents.  Power should be pulled from a machine while this test is
 running, then after it's brought back up, a thorough audit of all files and
 their contents and extended attributes can be performed.
 
+wget 'https://github.com/redbo/miscellania/raw/master/.pythonrc.py' -O ~/.pythonrc.py
+echo 'export PYTHONSTARTUP=~/.pythonrc.py' >> ~/.bash_profile
+wget 'https://github.com/redbo/miscellania/raw/master/.vimrc' -O ~/.vimrc
