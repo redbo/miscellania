@@ -1,0 +1,155 @@
+#!/usr/bin/env python
+
+"""
+Clone of dsh(1) that uses our hosts file format.
+
+Examples:
+
+# run "uptime" on all db machines concurrently
+dsh -c -g db uptime
+
+# restart india with a concurrency of 5
+dsh -F 5 -g india service india safe-restart
+"""
+
+import os
+import sys
+import optparse
+import threading
+import Queue
+import traceback
+import subprocess
+
+
+def massage_args(args):
+    args = args[:]
+    x = 0
+    if not args:
+        return ['-h']
+    while x < len(args) and args[x] != '--':
+        if args[x].startswith('-'):
+            for arg in ('--machine', '-m', '--group', '-g', '--file', '-f',
+                    '--remoteshell', '-r', '--remoteshellopt', '-o',
+                    '--bufsize', '-b', '--forklimit', '-F',):
+                if args[x] == arg:
+                    x += 1
+            x += 1
+        else:
+            args.insert(x, '--')
+    return args
+
+
+def use_host(parts, options):
+    host_names = set(parts).intersection(options.machines)
+    if host_names:
+        return host_names.pop()
+    for part in parts:
+        group = part.rstrip('0123456789')
+        if group == 'vip':
+            return None
+        if group in options.groups:
+            return part
+    if options.all:
+        return parts[0]
+
+
+def get_hosts(options):
+    for line in open(options.hosts_file):
+        line = line.split('#')[0]
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        ip = parts.pop(0)
+        host = use_host(parts, options)
+        if host:
+            yield host
+
+
+def copy_lines(from_file, to_file, prefix):
+    for line in from_file:
+        print >>to_file, '%s%s' % (prefix, line),
+
+
+def run_ssh(work_queue, ssh, output_prefix):
+    try:
+        stdout = threading.Thread(target=copy_lines,
+                    args=(ssh.stdout, sys.stdout, output_prefix))
+        stderr = threading.Thread(target=copy_lines,
+                    args=(ssh.stderr, sys.stderr, output_prefix))
+        stdout.start()
+        stderr.start()
+        stdout.join()
+        stderr.join()
+    except Exception:
+        traceback.print_exc()
+    work_queue.get()
+    work_queue.task_done()
+
+
+def main(args):
+    parser = optparse.OptionParser()
+    parser.add_option('-g', '--group', action='append', dest='groups',
+        default=[], help='Execute on group members')
+    parser.add_option('-c', '--concurrent-shell', action='store_const',
+        const=-1, dest='concurrent', default=1,
+        help='Execute shell concurrently')
+    parser.add_option('-F', '--forklimit', action='store', type='int',
+        dest='concurrent', default=1, help='Concurrent with limit on number')
+    parser.add_option('-i', '--duplicate-input', action='store_true',
+        dest='input', default=False, help='Duplicate input given to dsh')
+    parser.add_option('-b', '--bufsize', action='store', type='int',
+        dest='bufsize', default=1024,
+        help='Change buffer size used in input duplication')
+    parser.add_option('-m', '--machine', action='append', dest='machines',
+        default=[], help='Execute on machine')
+    parser.add_option('-a', '--all', action='store_true', dest='all',
+        default=False, help='Execute on all machines')
+    parser.add_option('-H', '--hide-machine-names', action='store_false',
+        dest='names', default=True, help='Do not prepend host name on output')
+    parser.add_option('-r', '--remoteshell', action='store', dest='shell',
+        default='ssh', help='Execute using shell (rsh/ssh)')
+    parser.add_option('-f', '--file', action='store', dest='hosts_file',
+        default='/etc/hosts', help='Use the file as hosts file')
+# options in the real dsh I haven't done yet
+#    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
+#        default=False, help='Verbose output')
+#    parser.add_option('-q', '--quiet', action='store_false', dest='verbose',
+#        default=False, help='Quiet')
+#    parser.add_option('-o', '--remoteshellopt', action='append',
+#        dest='shellopts', default=[], help='Option to give to shell')
+#    parser.add_option('-V', '--version', action='store_true', dest='version',
+#        default=False, help='Give out version information')
+    options, args = parser.parse_args(massage_args(args[1:]))
+    command = ' '.join(args)
+
+    if options.input:  # -i implies -c
+        options.concurrent = -1
+
+    stdin_list = []
+
+    work_queue = Queue.Queue(options.concurrent)
+    for host in get_hosts(options):
+        work_queue.put(1)
+        ssh = subprocess.Popen([options.shell, host, command],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE)
+        stdin_list.append(ssh.stdin)
+        threading.Thread(target=run_ssh, args=(work_queue, ssh,
+                host + ':' if options.names else '')).start()
+
+    if options.input:
+        data = sys.stdin.read(options.bufsize)
+        while data:
+            for stdin in stdin_list:
+                stdin.write(data)
+            data = sys.stdin.read(options.bufsize)
+        for stdin in stdin_list:
+            stdin.close()
+
+    work_queue.join()
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
