@@ -35,9 +35,9 @@ def cstats(filename):
     zlib_size += len(zliber.flush())
 
     # align sizes to blocks
-    file_size = os.stat(filename).st_blocks * 512
-    bzip_size = int(math.ceil(float(bzip_size) / 512)) * 512
-    zlib_size = int(math.ceil(float(zlib_size) / 512)) * 512
+    file_size = stat.st_blocks * 512
+    bzip_size = int(math.ceil(bzip_size / 512.0) * 512)
+    zlib_size = int(math.ceil(zlib_size / 512.0) * 512)
 
     return file_size, bzip_size, zlib_size
 
