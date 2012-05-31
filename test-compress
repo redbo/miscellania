@@ -13,6 +13,7 @@ import sys
 import bz2
 import zlib
 import time
+import math
 import threading
 
 
@@ -25,14 +26,19 @@ def cstats(filename):
     except IOError: # access denied probably
         return (0, 0, 0)
     bzer = bz2.BZ2Compressor()
-    zliber = zlib.compressobj()
-    file_size = bzip_size = zlib_size = 0
+    zliber = zlib.compressobj(9)
+    bzip_size = zlib_size = 0
     for data in iter(lambda: fp.read(CHUNK_SIZE), ''):
-        file_size += len(data)
         bzip_size += len(bzer.compress(data))
         zlib_size += len(zliber.compress(data))
     bzip_size += len(bzer.flush())
     zlib_size += len(zliber.flush())
+
+    # align sizes to blocks
+    file_size = os.stat(filename).st_blocks * 512
+    bzip_size = int(math.ceil(float(bzip_size) / 512)) * 512
+    zlib_size = int(math.ceil(float(zlib_size) / 512)) * 512
+
     return file_size, bzip_size, zlib_size
 
 
@@ -50,6 +56,8 @@ def print_stats():
     looped = 0
     while True:
         time.sleep(1)
+        if not file_size:
+            continue
         if not looped % 20:
             print
             print 'Files           Size         BZ2 (% redu)        ZLIB (% redu)        BEST (% redu)'

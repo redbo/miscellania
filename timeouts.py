@@ -75,7 +75,7 @@ if __name__ == '__main__':
     try:
         with OuterTimeout(2):
             try:
-                with InnerTimeout(1):
+                with InnerTimeout(10):
                     time.sleep(20)
             except InnerTimeout:
                 print "INNER TIMEOUT CAUGHT", time.time() - start
