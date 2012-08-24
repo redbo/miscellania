@@ -13,6 +13,9 @@ set t_Co=256
 "set t_AB=^[[48;5;%dm
 "set t_AF=^[[38;5;%dm
 
+" :sum command
+cnoreabbrev sum ! python -c 'import sys;print sum([int(x) for x in sys.stdin.read().split() if x])'
+
 " 4-space tab widths for python (and pyrex)
 autocmd FileType py* setlocal shiftwidth=4 tabstop=8 softtabstop=4
 
@@ -25,9 +28,6 @@ function! TogglePythonComments()
  endif
 endfunction
 autocmd FileType python map # :call TogglePythonComments()<cr>
-map <C-n> :bn<cr>
-map <C-p> :bp<cr>
-map <C-t> :E<cr>
 
 highlight SpecialKey term=bold ctermfg=16
 highlight NonText term=bold ctermfg=16
@@ -126,5 +126,5 @@ highlight htmlTagName ctermfg=246
 
 " highlight lines over 79 cols, spaces at the end of lines and tab characters
 highlight BadStyle ctermbg=darkred ctermfg=darkgray
-match BadStyle "\(\%>78v.\+\|\t\| \+$\)"
+match BadStyle "\(\%>79v.\+\|\t\| \+$\)"
 
