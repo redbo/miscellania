@@ -37,7 +37,7 @@ function! GoFormat()
   call writefile(getline(1,'$'), tmpname)
   let out = system("goimports " . tmpname)
   if v:shell_error == 0
-      execute ":%!goimports " . tmpname
+      execute ":%!goimports " . tmpname . "| gofmt -s"
       call cursor(l, c)
       execute ":redraw!"
   else
