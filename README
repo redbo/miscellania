@@ -20,3 +20,13 @@ their contents and extended attributes can be performed.
 wget 'https://github.com/redbo/miscellania/raw/master/.pythonrc.py' -O ~/.pythonrc.py
 echo 'export PYTHONSTARTUP=~/.pythonrc.py' >> ~/.bash_profile
 wget 'https://github.com/redbo/miscellania/raw/master/.vimrc' -O ~/.vimrc
+
+
+ADD LATER:
+
+~/bin/myscreen
+ln -sf $SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock
+screen $@
+
+~/.screenrc 
+setenv SSH_AUTH_SOCK $HOME/.ssh/ssh_auth_sock
