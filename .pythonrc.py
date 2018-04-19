@@ -1,4 +1,10 @@
 """
+This jazzes up the python shell a bit.
+It enables tab complete and history persistence.
+It pretty-prints results.
+It makes ipython-style red and green ">>" "<<" prompts.
+I believe that is all.
+
 wget 'https://github.com/redbo/miscellania/raw/master/.pythonrc.py' -O ~/.pythonrc.py
 echo 'export PYTHONSTARTUP=~/.pythonrc.py' >> ~/.bash_profile
 """
