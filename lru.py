@@ -1,6 +1,14 @@
 """
 A simple LRU class in python.
 Acts like a total dict.
+
+This doesn't implement an lru the correct way, with a doubly-
+linked list.  (correct because deque remove() is O(N) while the
+doubly-linked list analogue is O(1)).
+
+Implementing data structures in python is so slow that unless the
+LRU is absolutely massive, this wrong data structure that pushes
+executions down into C land is faster.
 """
 import collections
 
